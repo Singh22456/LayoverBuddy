@@ -34,7 +34,7 @@ struct HomeView: View {
                     .padding()
                 }
             }
-            .navigationTitle("Welcome, Vansh")
+            .navigationTitle("Welcome, Brahmjot")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

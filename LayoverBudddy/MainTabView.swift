@@ -30,7 +30,7 @@ struct MainTabView: View {
                     Label("Home", systemImage: "house")
                 }
 
-            Text("Explore View")
+            ExploreView()
                 .tabItem {
                     Label("Explore", systemImage: "safari")
                 }

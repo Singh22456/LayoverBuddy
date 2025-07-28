@@ -8,13 +8,18 @@
 import SwiftUI
 
 struct FlightCardView: View {
+    @State private var showFlightForm = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-
             // Header with +, Bell and Trash
             HStack {
+                NavigationLink(destination: EditableFlightForm(), isActive: $showFlightForm) {
+                    EmptyView()
+                }
+
                 Button(action: {
-                    print("Add flight tapped")
+                    showFlightForm = true
                 }) {
                     Image(systemName: "plus")
                         .font(.title2)
@@ -58,7 +63,6 @@ struct FlightCardView: View {
                         .font(.caption)
                         .foregroundColor(.blue)
                     Image(systemName: "airplane")
-                        //.rotationEffect(.degrees(90))
                         .foregroundColor(.blue)
                 }
 
@@ -102,7 +106,6 @@ struct FlightCardView: View {
         .cornerRadius(16)
     }
 }
-
 
 #Preview {
     FlightCardView()
