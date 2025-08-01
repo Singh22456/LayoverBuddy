@@ -48,6 +48,11 @@ struct ServiceCategory: Identifiable {
     let facilities: [AirportServiceDetail]
 }
 
+struct DeletableService: Identifiable {
+    var id: String { name }
+    let name: String
+}
+
 let sampleServices: [ServiceCategory] = [
     ServiceCategory(
         title: "Lounges",

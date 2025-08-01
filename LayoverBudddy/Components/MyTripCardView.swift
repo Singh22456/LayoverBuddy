@@ -8,51 +8,68 @@
 import SwiftUI
 
 struct MyTripCardView: View {
-    let selectedServices: [String] = [
+    @State private var selectedServices: [String] = [
         "Lounge",
         "City Tour",
         "Shower"
     ]
-    
+    @State private var isEditing = false
+    @State private var serviceToDelete: DeletableService? = nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Title
-            Text("My Trip")
-                .font(.title3)
-                .bold()
-            
+            // Header
+            HStack {
+                Text("My Trip")
+                    .font(.title3)
+                    .bold()
+                Spacer()
+                Button(action: {
+                    isEditing.toggle()
+                }) {
+                    Text(isEditing ? "Done" : "Edit")
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                }
+            }
+
             // Subheading
             Text("Planned Layover Services")
                 .font(.subheadline)
                 .foregroundColor(.gray)
 
-            // Service List
+            // List of Services
             ForEach(selectedServices, id: \.self) { service in
                 HStack {
                     Image(systemName: "checkmark.circle")
                         .foregroundColor(.blue)
                     Text(service)
                     Spacer()
+
+                    if isEditing {
+                        Button(action: {
+                            serviceToDelete = DeletableService(name: service)
+                        }) {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundColor(.red)
+                        }
+                    }
                 }
             }
-            
-            // Add Service Button
-//            Button(action: {
-//                print("Add Service tapped")
-//            }) {
-//                HStack {
-//                    Image(systemName: "plus.circle.fill")
-//                        .foregroundColor(.blue)
-//                    Text("Add Layover Service")
-//                        .foregroundColor(.blue)
-//                }
-//            }
-//            .padding(.top, 4)
-
         }
         .padding()
         .background(Color.white)
         .cornerRadius(16)
+        .alert(item: $serviceToDelete) { service in
+            Alert(
+                title: Text("Delete Service"),
+                message: Text("Are you sure you want to remove \"\(service.name)\" from your trip?"),
+                primaryButton: .destructive(Text("Delete")) {
+                    selectedServices.removeAll { $0 == service.name }
+                },
+                secondaryButton: .cancel()
+            )
+        }
     }
 }
 

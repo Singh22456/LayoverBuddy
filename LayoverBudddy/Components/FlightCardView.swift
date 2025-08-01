@@ -9,15 +9,14 @@ import SwiftUI
 
 struct FlightCardView: View {
     @State private var showFlightForm = false
+    @State private var showReminderModal = false
+    @State private var showDeleteAlert = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header with +, Bell and Trash
-            HStack {
-                NavigationLink(destination: EditableFlightForm(), isActive: $showFlightForm) {
-                    EmptyView()
-                }
 
+            // Header Buttons
+            HStack(spacing: 16) {
                 Button(action: {
                     showFlightForm = true
                 }) {
@@ -31,17 +30,27 @@ struct FlightCardView: View {
                 Spacer()
 
                 Button(action: {
-                    print("Reminder tapped")
+                    showReminderModal = true
                 }) {
                     Image(systemName: "bell")
                         .font(.title2)
                 }
 
                 Button(action: {
-                    print("Delete tapped")
+                    showDeleteAlert = true
                 }) {
                     Image(systemName: "trash")
                         .font(.title2)
+                }
+                .alert(isPresented: $showDeleteAlert) {
+                    Alert(
+                        title: Text("Delete Flight"),
+                        message: Text("Are you sure you want to delete the flight added?"),
+                        primaryButton: .destructive(Text("Delete")) {
+                            print("Flight deleted")
+                        },
+                        secondaryButton: .cancel()
+                    )
                 }
             }
 
@@ -49,8 +58,7 @@ struct FlightCardView: View {
             HStack {
                 VStack(alignment: .leading) {
                     Text("08:30")
-                        .font(.title3)
-                        .bold()
+                        .font(.title3).bold()
                     Text("New York (JFK)")
                         .foregroundColor(.gray)
                         .font(.subheadline)
@@ -58,7 +66,7 @@ struct FlightCardView: View {
 
                 Spacer()
 
-                VStack {
+                VStack(spacing: 4) {
                     Text("5h 20m")
                         .font(.caption)
                         .foregroundColor(.blue)
@@ -70,15 +78,14 @@ struct FlightCardView: View {
 
                 VStack(alignment: .trailing) {
                     Text("13:50")
-                        .font(.title3)
-                        .bold()
+                        .font(.title3).bold()
                     Text("London (LHR)")
                         .foregroundColor(.gray)
                         .font(.subheadline)
                 }
             }
 
-            // Layover Section
+            // Layovers
             VStack(alignment: .leading, spacing: 8) {
                 Text("Layovers")
                     .font(.headline)
@@ -99,11 +106,18 @@ struct FlightCardView: View {
                         .foregroundColor(.gray)
                 }
             }
-
         }
         .padding()
         .background(Color(.white))
         .cornerRadius(16)
+        .sheet(isPresented: $showReminderModal) {
+            ReminderView()
+        }
+        .background(
+            NavigationLink(destination: EditableFlightForm(), isActive: $showFlightForm) {
+                EmptyView()
+            }
+        )
     }
 }
 
