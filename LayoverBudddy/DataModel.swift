@@ -26,3 +26,43 @@ struct LayoverInput {
     var hours: Int = 0
     var minutes: Int = 0
 }
+
+struct Message: Identifiable {
+    let id = UUID()
+    let text: String
+    let isUser: Bool
+    let timestamp: String
+}
+
+struct AirportServiceDetail: Identifiable {
+    let id = UUID()
+    let name: String
+    let terminal: String
+    let nearbyLandmark: String
+}
+
+struct ServiceCategory: Identifiable {
+    let id = UUID()
+    let title: String
+    let imageName: String
+    let facilities: [AirportServiceDetail]
+}
+
+let sampleServices: [ServiceCategory] = [
+    ServiceCategory(
+        title: "Lounges",
+        imageName: "lounges",
+        facilities: [
+            AirportServiceDetail(name: "Al Mourjan Lounge", terminal: "Terminal 1", nearbyLandmark: "Near Gate C1"),
+            AirportServiceDetail(name: "Oryx Lounge", terminal: "Terminal 1", nearbyLandmark: "Near Duty-Free Zone")
+        ]
+    ),
+    ServiceCategory(
+        title: "Showers",
+        imageName: "showers",
+        facilities: [
+            AirportServiceDetail(name: "Shower Suite A", terminal: "Terminal 1", nearbyLandmark: "Wellness Area"),
+            AirportServiceDetail(name: "Shower Pod Zone", terminal: "Terminal 2", nearbyLandmark: "Near Lounge C")
+        ]
+    )
+]
