@@ -53,6 +53,12 @@ struct DeletableService: Identifiable {
     let name: String
 }
 
+struct UserDetails {
+    let name: String
+    let age: Int
+    let email: String
+}
+
 let sampleServices: [ServiceCategory] = [
     ServiceCategory(
         title: "Lounges",
@@ -71,3 +77,5 @@ let sampleServices: [ServiceCategory] = [
         ]
     )
 ]
+
+let sampleUser = UserDetails(name: "Brahmjot Singh", age: 23, email: "brahmjot@example.com")

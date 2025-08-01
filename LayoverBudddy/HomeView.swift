@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @State private var showProfile = false  // 👈 navigation trigger
 
     init() {
         let navBarAppearance = UINavigationBarAppearance()
@@ -39,7 +40,7 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
-                        print("Profile tapped")
+                        showProfile = true
                     }) {
                         Image(systemName: "person.crop.circle.fill")
                             .font(.title2)
@@ -47,6 +48,16 @@ struct HomeView: View {
                     }
                 }
             }
+            // NavigationLink triggered by state
+            .background(
+                NavigationLink(
+                    destination: ProfileView(user: UserDetails(name: "Brahmjot Singh", age: 23, email: "brahmjot@example.com")),
+                    isActive: $showProfile
+                ) {
+                    EmptyView()
+                }
+                .hidden()
+            )
         }
     }
 }

@@ -10,8 +10,8 @@ import SwiftUI
 struct ExploreView: View {
     @State private var selectedCity = "Singapore"
     @State private var searchText = ""
+    @State private var showProfile = false
 
-    // Full list of categories (always shown)
     let allCategories: [(title: String, imageName: String)] = [
         ("Lounges", "Image"),
         ("Sleep Pods & Transit Hotels", "Image"),
@@ -23,7 +23,6 @@ struct ExploreView: View {
         ("Short City Tours", "Image")
     ]
 
-    // Sample services per city
     var services: [ServiceCategory] {
         switch selectedCity {
         case "Singapore":
@@ -62,59 +61,67 @@ struct ExploreView: View {
         GridItem(.flexible(), spacing: 16)
     ]
 
-    // Helper: Check if this category exists in current city services
     func serviceFor(title: String) -> ServiceCategory? {
         services.first { $0.title == title }
     }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+            ZStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
 
-                    // Dropdown
-                    Menu {
-                        Button("Singapore", action: { selectedCity = "Singapore" })
-                        Button("Tokyo", action: { selectedCity = "Tokyo" })
-                    } label: {
-                        HStack {
-                            Text(selectedCity)
-                            Spacer()
-                            Image(systemName: "chevron.down")
+                        // Dropdown
+                        Menu {
+                            Button("Singapore", action: { selectedCity = "Singapore" })
+                            Button("Tokyo", action: { selectedCity = "Tokyo" })
+                        } label: {
+                            HStack {
+                                Text(selectedCity)
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                            }
+                            .padding()
+                            .background(Color(.systemGray5))
+                            .cornerRadius(12)
+                            .frame(maxWidth: .infinity)
                         }
-                        .padding()
-                        .background(Color(.systemGray5))
-                        .cornerRadius(12)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding(.horizontal)
-
-                    // Header
-                    Text("Service Categories")
-                        .font(.headline)
                         .padding(.horizontal)
 
-                    // Grid of all 8 categories
-                    LazyVGrid(columns: columns, spacing: 20) {
-                        ForEach(allCategories, id: \.title) { item in
-                            if let matchedService = serviceFor(title: item.title) {
-                                // ✅ Clickable when service exists
-                                NavigationLink(destination: ServiceDetailView(service: matchedService)) {
+                        // Header
+                        Text("Service Categories")
+                            .font(.headline)
+                            .padding(.horizontal)
+
+                        // Grid of all 8 categories
+                        LazyVGrid(columns: columns, spacing: 20) {
+                            ForEach(allCategories, id: \.title) { item in
+                                if let matchedService = serviceFor(title: item.title) {
+                                    NavigationLink(destination: ServiceDetailView(service: matchedService)) {
+                                        CategoryCard(title: item.title, imageName: item.imageName)
+                                    }
+                                } else {
                                     CategoryCard(title: item.title, imageName: item.imageName)
+                                        .opacity(0.4)
                                 }
-                            } else {
-                                // ❌ Non-clickable grayed-out card
-                                CategoryCard(title: item.title, imageName: item.imageName)
-                                    .opacity(0.4)
                             }
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
+                    .padding(.top)
                 }
-                .padding(.top)
+                .background(Color(.systemGray6))
+                .scrollContentBackground(.hidden)
+
+                // 🔒 Hidden NavigationLink for profile
+                NavigationLink(
+                    destination: ProfileView(user: UserDetails(name: "Brahmjot Singh", age: 23, email: "brahmjot@example.com")),
+                    isActive: $showProfile
+                ) {
+                    EmptyView()
+                }
+                .opacity(0)
             }
-            .background(Color(.systemGray6))
-            .scrollContentBackground(.hidden)
             .navigationTitle("Explore")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(Color.white, for: .navigationBar)
@@ -122,10 +129,11 @@ struct ExploreView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
-                        // Profile action
+                        showProfile = true
                     }) {
-                        Image(systemName: "person.crop.circle")
+                        Image(systemName: "person.crop.circle.fill")
                             .font(.title2)
+                            .foregroundColor(.blue)
                     }
                 }
             }
