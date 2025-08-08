@@ -145,4 +145,83 @@ class LayoverBuddyDataModel: ObservableObject {
     @Published var services: [ServiceCategory] = sampleServices
     @Published var reminders: [Reminder] = []
     @Published var chatHistory: [ChatMessage] = []
+
+    // MARK: - User Management
+    func updateUserProfile(name: String, age: Int, email: String) {
+        guard var user = currentUser else { return }
+        user.name = name
+        user.age = age
+        user.email = email
+        currentUser = user
+    }
+
+    // MARK: - Trip Management
+    func addTrip(_ trip: Trip) {
+        trips.append(trip)
+    }
+
+    func deleteTrip(_ tripID: UUID) {
+        trips.removeAll { $0.id == tripID }
+    }
+
+    func updateTrip(_ updatedTrip: Trip) {
+        if let index = trips.firstIndex(where: { $0.id == updatedTrip.id }) {
+            trips[index] = updatedTrip
+        }
+    }
+
+    func getTrip(by id: UUID) -> Trip? {
+        return trips.first { $0.id == id }
+    }
+
+    // MARK: - Reminder Management
+    func addReminder(_ reminder: Reminder) {
+        reminders.append(reminder)
+    }
+
+    func deleteReminder(_ id: UUID) {
+        reminders.removeAll { $0.id == id }
+    }
+
+    func toggleReminderCompletion(_ id: UUID) {
+        if let index = reminders.firstIndex(where: { $0.id == id }) {
+            reminders[index].isCompleted.toggle()
+        }
+    }
+
+    // MARK: - Chat Management
+    func addChatMessage(_ message: ChatMessage) {
+        chatHistory.append(message)
+    }
+
+    func clearChatHistory() {
+        chatHistory.removeAll()
+    }
+
+    // MARK: - Airport Services
+    func updateServiceCategory(_ updatedCategory: ServiceCategory) {
+        if let index = services.firstIndex(where: { $0.id == updatedCategory.id }) {
+            services[index] = updatedCategory
+        }
+    }
+
+    func addFacility(to categoryID: UUID, newFacility: AirportServiceDetail) {
+        if let index = services.firstIndex(where: { $0.id == categoryID }) {
+            services[index].facilities?.append(newFacility)
+        }
+    }
+
+    func addService(to categoryID: UUID, newService: AirportService) {
+        if let index = services.firstIndex(where: { $0.id == categoryID }) {
+            services[index].services?.append(newService)
+        }
+    }
+
+    // MARK: - Utility
+    func formattedFlightDuration(from departure: Date, to arrival: Date) -> String {
+        let interval = arrival.timeIntervalSince(departure)
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
+        return "\(hours)h \(minutes)m"
+    }
 }
