@@ -11,7 +11,7 @@ struct ServiceDetailView: View {
     let service: ServiceCategory
 
     var body: some View {
-        List(service.facilities) { facility in
+        List(service.facilities ?? []) { facility in
             VStack(alignment: .leading, spacing: 4) {
                 Text(facility.name)
                     .font(.headline)
