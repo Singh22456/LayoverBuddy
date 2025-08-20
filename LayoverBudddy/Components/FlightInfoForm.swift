@@ -1,10 +1,17 @@
 //
-//  FlightInfoForm.swift (Refactored)
-//  LayoverBuddy
+//  FlightInfoForm.swift
+//  LayoverBudddy
+//
+//  Created by Brahmjot Singh Tatla on 28/07/25.
+//
+
 
 import SwiftUI
 
 struct EditableFlightForm: View {
+    // Dismiss to go back to HomeView after success
+    @Environment(\.dismiss) private var dismiss
+
     @State private var departureAirport = ""
     @State private var arrivalAirport = ""
 
@@ -18,6 +25,9 @@ struct EditableFlightForm: View {
     @State private var layovers: [LayoverInput] = [LayoverInput()]
     @State private var expandedLayoverIndex: Int? = nil
 
+    // Success popup
+    @State private var showSuccessAlert = false
+
     var body: some View {
         Form {
             airportSection
@@ -27,6 +37,14 @@ struct EditableFlightForm: View {
         }
         .navigationTitle("Flight Entry")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Flight added successfully", isPresented: $showSuccessAlert) {
+            Button("OK") {
+                // Pop this view -> back to HomeView
+                dismiss()
+            }
+        } message: {
+            Text("Your flight has been saved.")
+        }
     }
 
     private var airportSection: some View {
@@ -42,9 +60,7 @@ struct EditableFlightForm: View {
             DatePicker("Arrival Time", selection: $arrivalTime, displayedComponents: .hourAndMinute)
 
             Button(action: {
-                withAnimation {
-                    isFlightDurationExpanded.toggle()
-                }
+                withAnimation { isFlightDurationExpanded.toggle() }
             }) {
                 HStack {
                     Text("Flight Duration: \(flightHours)h \(flightMinutes)m")
@@ -57,18 +73,14 @@ struct EditableFlightForm: View {
             if isFlightDurationExpanded {
                 HStack {
                     Picker("Hours", selection: $flightHours) {
-                        ForEach(0..<24) { hour in
-                            Text("\(hour)h").tag(hour)
-                        }
+                        ForEach(0..<24) { Text("\($0)h").tag($0) }
                     }
                     .pickerStyle(.wheel)
                     .frame(width: 100)
                     .clipped()
 
                     Picker("Minutes", selection: $flightMinutes) {
-                        ForEach([0, 15, 30, 45], id: \.self) { minute in
-                            Text("\(minute)m").tag(minute)
-                        }
+                        ForEach([0, 15, 30, 45], id: \.self) { Text("\($0)m").tag($0) }
                     }
                     .pickerStyle(.wheel)
                     .frame(width: 100)
@@ -101,18 +113,14 @@ struct EditableFlightForm: View {
                     if expandedLayoverIndex == index {
                         HStack {
                             Picker("Hours", selection: $layovers[index].hours) {
-                                ForEach(0..<24) { hour in
-                                    Text("\(hour)h").tag(hour)
-                                }
+                                ForEach(0..<24) { Text("\($0)h").tag($0) }
                             }
                             .pickerStyle(.wheel)
                             .frame(width: 100)
                             .clipped()
 
                             Picker("Minutes", selection: $layovers[index].minutes) {
-                                ForEach([0, 15, 30, 45], id: \.self) { minute in
-                                    Text("\(minute)m").tag(minute)
-                                }
+                                ForEach([0, 15, 30, 45], id: \.self) { Text("\($0)m").tag($0) }
                             }
                             .pickerStyle(.wheel)
                             .frame(width: 100)
@@ -124,9 +132,9 @@ struct EditableFlightForm: View {
                 .padding(.vertical, 4)
             }
 
-            Button(action: {
+            Button {
                 layovers.append(LayoverInput())
-            }) {
+            } label: {
                 Label("Add Layover", systemImage: "plus.circle")
             }
         }
@@ -135,21 +143,30 @@ struct EditableFlightForm: View {
     private var submitSection: some View {
         Section {
             Button("Submit") {
+                let totalFlightMinutes = (flightHours * 60) + flightMinutes
+
                 let finalFlight = FlightInfo(
                     departureAirport: departureAirport,
                     arrivalAirport: arrivalAirport,
                     departureTime: departureTime,
                     arrivalTime: arrivalTime,
-                    flightDuration: "\(flightHours)h \(flightMinutes)m",
+                    durationMinutes: totalFlightMinutes,
                     layovers: layovers.map {
                         Layover(
                             airport: $0.airport,
-                            duration: "\($0.hours)h \($0.minutes)m"
+                            minutes: ($0.hours * 60) + $0.minutes
                         )
                     }
                 )
-                print(finalFlight)
+
+                LayoverBuddyDataModel.shared.setCurrentFlight(finalFlight)
+                print("Flight saved:", finalFlight)
+
+                // Trigger success popup
+                showSuccessAlert = true
             }
+            .disabled(departureAirport.trimmingCharacters(in: .whitespaces).isEmpty ||
+                      arrivalAirport.trimmingCharacters(in: .whitespaces).isEmpty)
         }
     }
 
@@ -159,6 +176,7 @@ struct EditableFlightForm: View {
         return formatter.string(from: date)
     }
 }
+
 
 #Preview {
     EditableFlightForm()
