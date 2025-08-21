@@ -27,12 +27,13 @@ struct FlightCardView: View {
             ReminderView()
         }
         .navigationDestination(isPresented: $showFlightForm) {
-            // Your form already saves via LayoverBuddyDataModel.shared.setCurrentFlight(...)
+            // Two‑flight entry form (saves TwoLegFlightInfo in model)
             EditableFlightForm()
         }
         .onAppear {
-            // Safe to call even if you didn't add persistence
+            // Safe to call even if persistence wasn't set
             model.loadCurrentFlight()
+            model.loadCurrentTwoLegFlight()
         }
     }
 
@@ -50,7 +51,7 @@ struct FlightCardView: View {
 
             Spacer()
 
-            if model.currentFlight != nil {
+            if model.currentTwoLegFlight != nil || model.currentFlight != nil {
                 Button { showReminderModal = true } label: {
                     Image(systemName: "bell").font(.title2)
                 }
@@ -58,11 +59,17 @@ struct FlightCardView: View {
                 Button { showDeleteAlert = true } label: {
                     Image(systemName: "trash").font(.title2)
                 }
-                .alert("Delete Flight", isPresented: $showDeleteAlert) {
-                    Button("Delete", role: .destructive) { model.deleteCurrentFlight() }
+                .alert("Delete itinerary?", isPresented: $showDeleteAlert) {
+                    Button("Delete", role: .destructive) {
+                        if model.currentTwoLegFlight != nil {
+                            model.clearTwoLegFlight()
+                        } else {
+                            model.deleteCurrentFlight()
+                        }
+                    }
                     Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text("Are you sure you want to delete the flight added?")
+                    Text("Are you sure you want to delete the saved flight?")
                 }
             }
         }
@@ -72,7 +79,9 @@ struct FlightCardView: View {
 
     @ViewBuilder
     private var content: some View {
-        if let f = model.currentFlight {
+        if let itin = model.currentTwoLegFlight {
+            TwoLegDetailsView(itin: itin)
+        } else if let f = model.currentFlight {
             FlightDetailsView(
                 flight: f,
                 durationText: durationText(for: f),
@@ -81,7 +90,7 @@ struct FlightCardView: View {
         } else {
             EmptyStateView(
                 title: "No flight added",
-                subtitle: "Tap + to add your flight details",
+                subtitle: "Tap + to add your flights",
                 systemImage: "airplane.circle"
             )
             .frame(maxWidth: .infinity)
@@ -90,17 +99,6 @@ struct FlightCardView: View {
     }
 
     // MARK: - Local helpers
-
-    private func timeString(_ date: Date) -> String {
-        struct Cache {
-            static let f: DateFormatter = {
-                let d = DateFormatter()
-                d.dateFormat = "HH:mm"
-                return d
-            }()
-        }
-        return Cache.f.string(from: date)
-    }
 
     private func formatMinutes(_ minutes: Int) -> String {
         let h = minutes / 60
@@ -117,7 +115,80 @@ struct FlightCardView: View {
     }
 }
 
-// MARK: - Subviews
+// MARK: - Subviews (Two-Leg)
+
+private struct TwoLegDetailsView: View {
+    let itin: TwoLegFlightInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header line: F1 dep airport → F2 arr airport
+            Text("\(itin.first.departureAirport) → \(itin.second.arrivalAirport)")
+                .font(.headline)
+
+            // Times (F1 dep → F2 arr)
+            Text("\(timeString(itin.first.departureTime)) • \(dateString(itin.first.departureTime))  →  \(timeString(itin.second.arrivalTime)) • \(dateString(itin.second.arrivalTime))")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            // Chips for segments + layover
+            HStack(spacing: 8) {
+                chip("F1 \(minutesToHhMm(itin.first.durationMinutes))")
+                chip("Layover \(minutesToHhMm(itin.layoverMinutes)) @ \(itin.layoverAirport)")
+                chip("F2 \(minutesToHhMm(itin.second.durationMinutes))")
+            }
+
+            Divider()
+
+            HStack {
+                Text("Total")
+                Spacer()
+                Text(minutesToHhMm(itin.totalDurationMinutes)).bold()
+            }
+            .font(.subheadline)
+        }
+    }
+
+    // Helpers
+    private func timeString(_ date: Date) -> String {
+        struct Cache {
+            static let f: DateFormatter = {
+                let d = DateFormatter()
+                d.dateFormat = "HH:mm"
+                return d
+            }()
+        }
+        return Cache.f.string(from: date)
+    }
+
+    private func dateString(_ date: Date) -> String {
+        struct Cache {
+            static let f: DateFormatter = {
+                let d = DateFormatter()
+                d.dateFormat = "dd MMM"
+                return d
+            }()
+        }
+        return Cache.f.string(from: date)
+    }
+
+    private func minutesToHhMm(_ minutes: Int) -> String {
+        let h = minutes / 60
+        let m = minutes % 60
+        return "\(h)h \(m)m"
+    }
+
+    private func chip(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color(.systemGray6))
+            .clipShape(Capsule())
+    }
+}
+
+// MARK: - Subviews (Single-Leg)
 
 private struct FlightDetailsView: View {
     let flight: FlightInfo

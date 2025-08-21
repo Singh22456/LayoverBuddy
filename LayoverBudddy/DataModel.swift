@@ -15,7 +15,7 @@ struct UserDetails: Identifiable, Codable {
     var email: String
 }
 
-// MARK: - Flight Info
+// MARK: - Flight Info (Single-Leg)
 struct FlightInfo: Identifiable, Codable {
     var id: UUID = UUID()
     // var flightNumber: String
@@ -146,7 +146,50 @@ let sampleServices: [ServiceCategory] = [
 
 let sampleUser = UserDetails(name: "Brahmjot Singh", age: 23, email: "brahmjot@example.com")
 
-// MARK: - App-Level Data Model
+// ======================================================================
+// NEW: Two-Leg Flight Models & Helpers
+// ======================================================================
+
+// One flight segment
+struct FlightSegment: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var departureAirport: String
+    var arrivalAirport: String
+    var departureTime: Date
+    var arrivalTime: Date
+
+    /// Minutes between departure and arrival (non-negative, handles order)
+    var durationMinutes: Int {
+        let mins = Int(arrivalTime.timeIntervalSince(departureTime) / 60)
+        return max(mins, 0)
+    }
+}
+
+// Two-leg itinerary: first + second, with automatic layover
+struct TwoLegFlightInfo: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var first: FlightSegment
+    var second: FlightSegment
+
+    /// Layover airport is the arrival of the first segment
+    var layoverAirport: String { first.arrivalAirport }
+
+    /// Minutes between arrival of first and departure of second (non-negative)
+    var layoverMinutes: Int {
+        let mins = Int(second.departureTime.timeIntervalSince(first.arrivalTime) / 60)
+        return max(mins, 0)
+    }
+
+    /// Total trip duration in minutes (first + layover + second)
+    var totalDurationMinutes: Int {
+        first.durationMinutes + layoverMinutes + second.durationMinutes
+    }
+}
+
+// ======================================================================
+// App-Level Data Model
+// ======================================================================
+
 @MainActor
 class LayoverBuddyDataModel: ObservableObject {
     static let shared = LayoverBuddyDataModel()
@@ -154,7 +197,8 @@ class LayoverBuddyDataModel: ObservableObject {
     // Load persisted data on creation
     private init() {
         loadMyTrip()
-        loadCurrentFlight() // optional, but convenient
+        loadCurrentFlight()        // single-leg (existing)
+        loadCurrentTwoLegFlight()  // two-leg (new)
     }
     
     @Published private(set) var currentUser: UserDetails? = sampleUser
@@ -162,7 +206,12 @@ class LayoverBuddyDataModel: ObservableObject {
     @Published private(set) var services: [ServiceCategory] = sampleServices
     @Published private(set) var reminders: [Reminder] = []
     @Published private(set) var chatHistory: [ChatMessage] = []
+
+    // Single-leg current flight (existing)
     @Published private(set) var currentFlight: FlightInfo? = nil
+
+    // NEW: Two-leg itinerary
+    @Published private(set) var currentTwoLegFlight: TwoLegFlightInfo? = nil
 
     // My Trip: facilities the user added
     @Published private(set) var myTrip: [AirportServiceDetail] = []
@@ -258,12 +307,19 @@ class LayoverBuddyDataModel: ObservableObject {
     // MARK: - Utility
     func formattedFlightDuration(from departure: Date, to arrival: Date) -> String {
         let interval = arrival.timeIntervalSince(departure)
-        let hours = Int(interval) / 3600
-        let minutes = (Int(interval) % 3600) / 60
-        return "\(hours)h \(minutes)m"
+        let totalMins = max(Int(interval / 60), 0)
+        return minutesToHhMm(totalMins)
+    }
+
+    func minutesToHhMm(_ minutes: Int) -> String {
+        let h = minutes / 60
+        let m = minutes % 60
+        return "\(h)h \(m)m"
     }
     
-    // MARK: - Current Flight (single flight for FlightCardView)
+    // ==================================================================
+    // Current Flight (single flight for FlightCardView) - Existing
+    // ==================================================================
     private let kCurrentFlightKey = "current_flight_v1"
 
     private func persistCurrentFlight() {
@@ -304,8 +360,56 @@ class LayoverBuddyDataModel: ObservableObject {
     
     // Optional: computed helper
     var hasCurrentFlight: Bool { currentFlight != nil }
+
+    // ==================================================================
+    // NEW: Current Two-Leg Itinerary
+    // ==================================================================
+    private let kCurrentTwoLegFlightKey = "current_two_leg_flight_v1"
+
+    private func persistCurrentTwoLegFlight() {
+        let defaults = UserDefaults.standard
+        if let itin = currentTwoLegFlight,
+           let data = try? JSONEncoder().encode(itin) {
+            defaults.set(data, forKey: kCurrentTwoLegFlightKey)
+        } else {
+            defaults.removeObject(forKey: kCurrentTwoLegFlightKey)
+        }
+    }
+
+    func loadCurrentTwoLegFlight() {
+        let defaults = UserDefaults.standard
+        guard
+            let data = defaults.data(forKey: kCurrentTwoLegFlightKey),
+            let itin = try? JSONDecoder().decode(TwoLegFlightInfo.self, from: data)
+        else { return }
+        currentTwoLegFlight = itin
+    }
+
+    func setCurrentTwoLegFlight(_ itinerary: TwoLegFlightInfo) {
+        currentTwoLegFlight = itinerary
+        persistCurrentTwoLegFlight()
+        // Optional: if you want only one active at a time, clear single-leg
+        // currentFlight = nil
+        // persistCurrentFlight()
+    }
+
+    func updateCurrentTwoLegFlight(_ update: (inout TwoLegFlightInfo) -> Void) {
+        guard var it = currentTwoLegFlight else { return }
+        update(&it)
+        currentTwoLegFlight = it
+        persistCurrentTwoLegFlight()
+    }
+
+    func clearTwoLegFlight() {
+        currentTwoLegFlight = nil
+        persistCurrentTwoLegFlight()
+    }
+
+    var hasCurrentTwoLegFlight: Bool { currentTwoLegFlight != nil }
     
-    // MARK: - My Trip (persisted)
+    // ==================================================================
+    // My Trip (persisted)
+    // ==================================================================
     private let kMyTripKey = "myTrip_v1"
 
     private func persistMyTrip() {
